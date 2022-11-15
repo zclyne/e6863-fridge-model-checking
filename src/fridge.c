@@ -156,7 +156,7 @@ long kkv_put(int key, void *val, size_t size)
 		}
 	}
 
-	printf("found=%d\n", found);
+	// printf("found=%d\n", found);
 
 	if (found) { // key already exists
 		// update the value and size of the existing kv pair
@@ -167,9 +167,9 @@ long kkv_put(int key, void *val, size_t size)
 		ht_entry->kv_pair.size = size;
 		// if some GETs are blocked on the entry, wake up one
 		sem_getvalue(&ht_entry->sem, &sem_value);
-		printf("sem_value=%d\n", sem_value);
+		// printf("sem_value=%d\n", sem_value);
 		if (sem_value == 0) {
-			printf("gonna wake up a blocked get\n");
+			// printf("gonna wake up a blocked get\n");
 			// bucket->count needs to be incremented here because ht_entry is a fake one
 			bucket->count++;
 			wake_up = true;
@@ -233,7 +233,7 @@ long kkv_get(int key, void *val, size_t size, int flags)
 		if (ret == 1) // fake entry
 			free(new_entry);
 		else if (ret == -ENOENT) { // No entry, create a fake one
-			printf("no entry found, gonna create a fake one\n");
+			// printf("no entry found, gonna create a fake one\n");
 			new_entry->kv_pair.key = key;
 			new_entry->q_count = 0;
             // no value available, initialized to 0

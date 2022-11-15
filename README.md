@@ -7,3 +7,36 @@ This project utilizes [CBMC](http://www.cs.cmu.edu/~modelcheck/cbmc/) to perform
 
 ## Get Started
 
+### Run Fridge
+
+To run fridge, use the following `make` command to compile:
+
+```shell
+make app
+```
+
+and run the executable:
+
+```shell
+./app
+```
+
+### Run the unit tests
+
+All the unit tests are located in `test/unit_test.c`.
+
+To run the unit tests, use the following `make` command to compile:
+
+```shell
+make unit_test
+```
+
+and run the executable:
+
+```shell
+./unit_test
+```
+
+### Run the end-to-end tests
+
+All the end-to-end tests are located in `test/e2e_test.c`.

@@ -16,6 +16,7 @@
 
 #define min(a, b) a < b ? a : b
 
+int is_inited(void);
 long kkv_init();
 long kkv_destroy();
 long kkv_put(int key, void *val, size_t size);
