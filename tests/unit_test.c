@@ -103,17 +103,6 @@ int test_get_nonblocking_no_entry() {
     return 0;
 }
 
-void *blocking_get(void *vargp)
-{
-    int key = (int) vargp;
-    long ret;
-    int val;
-
-    ret = kkv_get(key, &val, sizeof(int), KKV_BLOCK);
-
-    return &val;
-}
-
 int main() {
     printf("test_init...\n");
     test_init();
