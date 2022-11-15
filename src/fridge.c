@@ -18,7 +18,7 @@ int hash(int key)
 
 static struct kkv_ht_bucket **hash_table;
 static pthread_rwlock_t rw_lock = PTHREAD_RWLOCK_INITIALIZER;
-static int destroyed;
+static int destroyed = 1;
 
 int is_inited(void)
 {

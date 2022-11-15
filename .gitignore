@@ -3,4 +3,4 @@
 *.out
 *.o
 *.gch
-./app
+app
