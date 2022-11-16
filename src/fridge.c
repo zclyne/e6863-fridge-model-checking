@@ -281,3 +281,38 @@ long kkv_get(int key, void *val, size_t size, int flags)
 	pthread_rwlock_unlock(&rw_lock);
 	return ret;
 }
+
+// num_gets_blocked returns the number of blocked kkv_get calls blocked on the given key
+int num_gets_blocked(int key) {
+	int ret;
+	struct kkv_ht_entry *ht_entry, *next_ht_entry, *new_entry;
+	struct kkv_ht_bucket *bucket;
+	struct kkv_pair *pair;
+
+	pthread_rwlock_rdlock(&rw_lock);
+	if (!is_inited()) {
+		pthread_rwlock_unlock(&rw_lock);
+		return -EPERM;
+	}
+	ret = -ENOENT;
+	bucket = hash_table[hash(key)];
+
+	// look for the entry of the given key
+	pthread_spin_lock(&bucket->lock);
+	list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries) {
+		if (ht_entry->kv_pair.key == key) {
+			// fake entry
+			if (ht_entry->q_count > 0)
+				ret = ht_entry->q_count;
+			// find
+			else
+				ret = 0;
+			break;
+		}
+	}
+
+	pthread_spin_unlock(&bucket->lock);
+	pthread_rwlock_unlock(&rw_lock);
+
+	return ret;
+}

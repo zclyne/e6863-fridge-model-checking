@@ -22,6 +22,9 @@ long kkv_destroy();
 long kkv_put(int key, void *val, size_t size);
 long kkv_get(int key, void *val, size_t size, int flags);
 
+// helper functions for testing
+int num_gets_blocked(int key);
+
 /*
  * A key-value pair.
  */

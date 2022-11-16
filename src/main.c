@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "fridge.h"
 
@@ -42,11 +43,20 @@ int main() {
 
     int v = 3;
 
-    pthread_t thread_id_1, thread_id_2;
-    pthread_create(&thread_id_1, NULL, non_blocking_get, (void *) 1);
+    pthread_t thread_id_1, thread_id_2, thread_id_3;
+    pthread_create(&thread_id_1, NULL, blocking_get, (void *) 1);
     pthread_create(&thread_id_2, NULL, blocking_get, (void *) 1);
-
-    sleep(3);
+    pthread_create(&thread_id_3, NULL, blocking_get, (void *) 1);
+    sleep(1); // make sure all the kkv_gets are blocked
+    printf("nums blocked=%d\n", num_gets_blocked(1));
+    ret = kkv_put(1, (void *) &v, sizeof(int));
+    printf("put ret = %ld\n", ret);
+    sleep(1); // give the blocked gets a chance to run
+    // terminate the threads
+    printf("nums blocked=%d\n", num_gets_blocked(1));
+    pthread_cancel(thread_id_1);
+    pthread_cancel(thread_id_2);
+    pthread_cancel(thread_id_3);
 
     printf("put key=1, val=%d\n", v);
     kkv_put(1, (void *) &v, sizeof(int));

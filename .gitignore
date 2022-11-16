@@ -4,3 +4,5 @@
 *.o
 *.gch
 app
+e2e_test
+unit_test

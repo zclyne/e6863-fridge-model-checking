@@ -68,6 +68,21 @@ int test_get_success() {
     return 0;
 }
 
+int test_get_remove_value() {
+    int val = 3, get_val;
+    long ret;
+
+    kkv_init();
+    ret = kkv_put(1, (void *) &val, sizeof(int));
+    assert(ret == 0);
+    ret = kkv_get(1, (void *) &get_val, sizeof(int), KKV_NONBLOCK);
+    assert(ret == 0 && get_val == 3);
+    ret = kkv_get(1, (void *) &get_val, sizeof(int), KKV_NONBLOCK);
+    assert(ret == -ENOENT);
+    kkv_destroy();
+    return 0;
+}
+
 int test_get_uninitialized() {
     int val = 3, get_val;
     long ret;
@@ -118,6 +133,8 @@ int main() {
 
     printf("test_get_success...\n");
     test_get_success();
+    printf("test_get_remove_value...\n");
+    test_get_remove_value();
     printf("test_get_uninitialized...\n");
     test_get_uninitialized();
     printf("test_get_value_null...\n");
