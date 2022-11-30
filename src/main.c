@@ -3,8 +3,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "fridge.h"
+#include "fridge.c"
 
 void *non_blocking_get(void *vargp)
 {
@@ -13,6 +15,8 @@ void *non_blocking_get(void *vargp)
     int val;
 
     ret = kkv_get(key, &val, sizeof(int), KKV_NONBLOCK);
+
+    __CPROVER_assert(!val && ret == -EINVAL, "check value null error handling");
 
     if (ret == -ENOENT) {
         printf("no entry found for key=%d\n", key);
@@ -30,6 +34,8 @@ void *blocking_get(void *vargp)
     int val;
 
     ret = kkv_get(key, &val, sizeof(int), KKV_BLOCK);
+
+    __CPROVER_assert(!val && ret == -EINVAL, "check value null error handling");
 
     printf("blocking get ret=%ld, val=%d\n", ret, val);
 

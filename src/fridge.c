@@ -6,6 +6,7 @@
  */
 
 #include <errno.h>
+#include <pthread.h>
 
 #include "fridge.h"
 
@@ -30,6 +31,8 @@ long kkv_init()
 {
 	int i;
 
+	__CPROVER_assert(!hash_table, "hashtable has not been inited");
+
 	pthread_rwlock_wrlock(&rw_lock);
 	if (is_inited()) {
 		pthread_rwlock_unlock(&rw_lock);
@@ -49,6 +52,9 @@ long kkv_init()
 	}
 
 	pthread_rwlock_unlock(&rw_lock);
+
+  	__CPROVER_assert(hash_table, "hashtable has been inited");
+
 	return 0;
 }
 
@@ -58,6 +64,9 @@ long kkv_destroy()
 	int i, count;
 	struct kkv_ht_bucket *bucket;
 	struct kkv_ht_entry *ht_entry, *next_ht_entry;
+
+	__CPROVER_assume(hash_table);
+  	__CPROVER_assert(hash_table, "hashtable has been inited");
 
 	count = 0;
 	pthread_rwlock_wrlock(&rw_lock);
@@ -96,6 +105,8 @@ long kkv_destroy()
 	hash_table = NULL;
 	pthread_rwlock_unlock(&rw_lock);
 
+	__CPROVER_assert(!hash_table, "hashtable has been destroyed");
+
 	return count;
 }
 
@@ -108,6 +119,8 @@ long kkv_put(int key, void *val, size_t size)
     bool wake_up = false;
 	int sem_value;
 
+	__CPROVER_assume(hash_table);
+
 	pthread_rwlock_rdlock(&rw_lock);
 	if (!is_inited()) {
 		pthread_rwlock_unlock(&rw_lock);
@@ -118,6 +131,10 @@ long kkv_put(int key, void *val, size_t size)
 		pthread_rwlock_unlock(&rw_lock);
 		return -EINVAL;
 	}
+
+	__CPROVER_assert(hash_table, "hashtable has been inited");
+	__CPROVER_assert(val, "value is not null");
+
 
 	// pre allocate the memory and copy the val
 	// so that malloc() is not called while holding the spin lock
@@ -174,10 +191,14 @@ long kkv_put(int key, void *val, size_t size)
 			bucket->count++;
 			wake_up = true;
 		}
+
+		__CPROVER_assert(*(ht_entry->kv_pair.val) == *val && ht_entry->kv_pair.size == size && ht_entry->kv_pair.key == key, "kkv put succeeded");
 	} else { // key doesn't exist
 		// add the new entry to the tail of the list
 		list_add(&new_entry->entries, &bucket->entries);
 		bucket->count++;
+		__CPROVER_assert(*(new_entry->kv_pair.val) == *val && new_entry->kv_pair.size == size && new_entry->kv_pair.key == key, "kkv put succeeded");
+
 	}
 
 	pthread_spin_unlock(&bucket->lock);
@@ -199,6 +220,8 @@ long kkv_get(int key, void *val, size_t size, int flags)
 	struct kkv_pair *pair;
 	void *buffer;
 
+	__CPROVER_assume(hash_table);
+
 	pthread_rwlock_rdlock(&rw_lock);
 	if (!is_inited()) {
 		pthread_rwlock_unlock(&rw_lock);
@@ -209,6 +232,9 @@ long kkv_get(int key, void *val, size_t size, int flags)
 		pthread_rwlock_unlock(&rw_lock);
 		return -EINVAL;
 	}
+
+  	__CPROVER_assert(hash_table, "hashtable is inited");
+	__CPROVER_assert(val, "value is not null");
 
 	ret = -ENOENT;
 	bucket = hash_table[hash(key)];
@@ -259,6 +285,8 @@ long kkv_get(int key, void *val, size_t size, int flags)
 			return -EPERM;
 		}
 		ret = 0; // found the kv pair
+		__CPROVER_assert(flags && ret == 0 && ht_entry->kv_pair.key == key && ht_entry->kv_pair.val, "check return of blocked blocking kkv_get");
+
 	}
 
 	// successfully found the kv pair
@@ -279,6 +307,9 @@ long kkv_get(int key, void *val, size_t size, int flags)
 	}
     pthread_spin_unlock(&bucket->lock);
 	pthread_rwlock_unlock(&rw_lock);
+
+	__CPROVER_assert(!flags && ret == -ENOENT, "check return of nonblock kkv_get no such key");
+
 	return ret;
 }
 
