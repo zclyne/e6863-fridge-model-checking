@@ -7,6 +7,13 @@ This project utilizes [CBMC](http://www.cs.cmu.edu/~modelcheck/cbmc/) to perform
 
 ## Get Started
 
+As `CBMC` requires adding code that cannot be normally compiled, the `master` branch of the repository is for running CBMC.
+
+To run unit tests and e2e tests, you need to switch to the `test` tag using:
+```shell
+git checkout test
+```
+
 ### Run Fridge
 
 To run fridge, use the following `make` command to compile:
@@ -40,3 +47,19 @@ and run the executable:
 ### Run the end-to-end tests
 
 All the end-to-end tests are located in `test/e2e_test.c`.
+
+To run the unit tests, use the following `make` command to compile:
+
+```shell
+make e2e_test
+```
+
+and run the executable:
+
+```shell
+./e2e_test
+```
+
+### Run CBMC Model Checking
+
+TBD
