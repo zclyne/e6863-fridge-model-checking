@@ -62,4 +62,10 @@ and run the executable:
 
 ### Run CBMC Model Checking
 
+#### Function-Level
+
+We implemented function-level model checking for `kkv_init`, `kkv_destroy`, `kkv_get` and `kkv_put`.
+
+To run CBMC on each function, you need to comment out the other three functions and then run the corresponding command in the `Makefile`.
+
 TBD

@@ -10,7 +10,7 @@
 
 void *non_blocking_get(void *vargp)
 {
-    int key = (int) vargp;
+    int key = (int)vargp;
     long ret;
     int val;
 
@@ -18,9 +18,12 @@ void *non_blocking_get(void *vargp)
 
     __CPROVER_assert(!val && ret == -EINVAL, "check value null error handling");
 
-    if (ret == -ENOENT) {
+    if (ret == -ENOENT)
+    {
         printf("no entry found for key=%d\n", key);
-    } else if (ret == 0) {
+    }
+    else if (ret == 0)
+    {
         printf("nonblocking get ret=%ld, val=%d\n", ret, val);
     }
 
@@ -29,7 +32,7 @@ void *non_blocking_get(void *vargp)
 
 void *blocking_get(void *vargp)
 {
-    int key = (int) vargp;
+    int key = (int)vargp;
     long ret;
     int val;
 
@@ -42,7 +45,8 @@ void *blocking_get(void *vargp)
     return NULL;
 }
 
-int main() {
+int main()
+{
     long ret;
 
     kkv_init();
@@ -50,12 +54,15 @@ int main() {
     int v = 3;
 
     pthread_t thread_id_1, thread_id_2, thread_id_3;
-    pthread_create(&thread_id_1, NULL, blocking_get, (void *) 1);
-    pthread_create(&thread_id_2, NULL, blocking_get, (void *) 1);
-    pthread_create(&thread_id_3, NULL, blocking_get, (void *) 1);
+    // __CPROVER_ASYNC_pthread_create(&thread_id_1, NULL, blocking_get, (void *)1);
+    // __CPROVER_ASYNC_pthread_create(&thread_id_2, NULL, blocking_get, (void *)1);
+    // __CPROVER_ASYNC_pthread_create(&thread_id_3, NULL, blocking_get, (void *)1);
+    pthread_create(&thread_id_1, NULL, blocking_get, (void *)1);
+    pthread_create(&thread_id_2, NULL, blocking_get, (void *)1);
+    pthread_create(&thread_id_3, NULL, blocking_get, (void *)1);
     sleep(1); // make sure all the kkv_gets are blocked
     printf("nums blocked=%d\n", num_gets_blocked(1));
-    ret = kkv_put(1, (void *) &v, sizeof(int));
+    ret = kkv_put(1, (void *)&v, sizeof(int));
     printf("put ret = %ld\n", ret);
     sleep(1); // give the blocked gets a chance to run
     // terminate the threads
@@ -65,7 +72,7 @@ int main() {
     pthread_cancel(thread_id_3);
 
     printf("put key=1, val=%d\n", v);
-    kkv_put(1, (void *) &v, sizeof(int));
+    kkv_put(1, (void *)&v, sizeof(int));
 
     pthread_join(thread_id_1, NULL);
     pthread_join(thread_id_2, NULL);
