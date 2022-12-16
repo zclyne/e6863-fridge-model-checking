@@ -27,88 +27,94 @@ int is_inited(void)
 }
 
 // initialize the fridge k-v store
-long kkv_init()
-{
-	int i;
+// long kkv_init()
+// {
+// 	int i;
 
-	__CPROVER_assert(!hash_table, "hashtable has not been inited");
+// 	pthread_rwlock_wrlock(&rw_lock);
+// 	if (is_inited())
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EPERM;
+// 	}
+// 	destroyed = 0;
+// 	hash_table = malloc(HASH_TABLE_LENGTH * sizeof(struct kkv_ht_bucket *));
+// 	if (!hash_table)
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EFAULT;
+// 	}
 
-	pthread_rwlock_wrlock(&rw_lock);
-	if (is_inited()) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EPERM;
-	}
-	destroyed = 0;
-	hash_table = malloc(HASH_TABLE_LENGTH * sizeof(struct kkv_ht_bucket *));
-	if (!hash_table) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EFAULT;
-	}
+// 	for (i = 0; i < HASH_TABLE_LENGTH; i++)
+// 	{
+// 		hash_table[i] = malloc(sizeof(struct kkv_ht_bucket));
+// 		pthread_spin_init(&hash_table[i]->lock, 0);
+// 		INIT_LIST_HEAD(&hash_table[i]->entries);
+// 	}
 
-	for (i = 0; i < HASH_TABLE_LENGTH; i++) {
-		hash_table[i] = malloc(sizeof(struct kkv_ht_bucket));
-        pthread_spin_init(&hash_table[i]->lock, 0);
-		INIT_LIST_HEAD(&hash_table[i]->entries);
-	}
+// 	pthread_rwlock_unlock(&rw_lock);
 
-	pthread_rwlock_unlock(&rw_lock);
+// 	__CPROVER_assert(hash_table, "hashtable has been inited");
 
-  	__CPROVER_assert(hash_table, "hashtable has been inited");
-
-	return 0;
-}
+// 	return 0;
+// }
 
 // destroy the fridge k-v store
-long kkv_destroy()
-{
-	int i, count;
-	struct kkv_ht_bucket *bucket;
-	struct kkv_ht_entry *ht_entry, *next_ht_entry;
+// long kkv_destroy()
+// {
+// 	int i, count;
+// 	struct kkv_ht_bucket *bucket;
+// 	struct kkv_ht_entry *ht_entry, *next_ht_entry;
 
-	__CPROVER_assume(hash_table);
-  	__CPROVER_assert(hash_table, "hashtable has been inited");
+// 	count = 0;
+// 	pthread_rwlock_wrlock(&rw_lock);
+// 	destroyed = 1;
 
-	count = 0;
-	pthread_rwlock_wrlock(&rw_lock);
-	destroyed = 1;
+// 	if (!is_inited())
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EPERM;
+// 	}
 
-	if (!is_inited()) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EPERM;
-	}
+// 	__CPROVER_assume(hash_table);
 
-	// spin lock
-	for (i = 0; i < HASH_TABLE_LENGTH; i++) {
-		bucket = hash_table[i];
-		pthread_spin_lock(&bucket->lock);
-		// for each entry in the bucket, remove it from the linked list and free the memory
-		list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries) {
-			// increment count only if it is not a fake entry
-			if (ht_entry->q_count == 0)
-				count++;
-			// loop until all GETs blocked on the entry returns
-			while (ht_entry->q_count > 0) {
-				pthread_spin_unlock(&bucket->lock);
-				pthread_rwlock_unlock(&rw_lock);
-				sem_post(&ht_entry->sem);
-				pthread_rwlock_wrlock(&rw_lock);
-				pthread_spin_lock(&bucket->lock);
-			}
-			list_del(&ht_entry->entries);
-            sem_destroy(&ht_entry->sem);
-			free(ht_entry->kv_pair.val);
-            free(ht_entry);
-		}
-		free(bucket);
-	}
-	free(hash_table);
-	hash_table = NULL;
-	pthread_rwlock_unlock(&rw_lock);
+// 	// spin lock
+// 	for (i = 0; i < HASH_TABLE_LENGTH; i++)
+// 	{
+// 		__CPROVER_assume(hash_table[i]);
 
-	__CPROVER_assert(!hash_table, "hashtable has been destroyed");
+// 		bucket = hash_table[i];
+// 		pthread_spin_lock(&bucket->lock);
+// 		// for each entry in the bucket, remove it from the linked list and free the memory
+// 		list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries)
+// 		{
+// 			// increment count only if it is not a fake entry
+// 			if (ht_entry->q_count == 0)
+// 				count++;
+// 			// loop until all GETs blocked on the entry returns
+// 			while (ht_entry->q_count > 0)
+// 			{
+// 				pthread_spin_unlock(&bucket->lock);
+// 				pthread_rwlock_unlock(&rw_lock);
+// 				sem_post(&ht_entry->sem);
+// 				pthread_rwlock_wrlock(&rw_lock);
+// 				pthread_spin_lock(&bucket->lock);
+// 			}
+// 			list_del(&ht_entry->entries);
+// 			sem_destroy(&ht_entry->sem);
+// 			free(ht_entry->kv_pair.val);
+// 			free(ht_entry);
+// 		}
+// 		free(bucket);
+// 	}
+// 	free(hash_table);
+// 	hash_table = NULL;
+// 	pthread_rwlock_unlock(&rw_lock);
 
-	return count;
-}
+// 	__CPROVER_assert(!hash_table, "hashtable has been destroyed");
+
+// 	return count;
+// }
 
 long kkv_put(int key, void *val, size_t size)
 {
@@ -116,38 +122,40 @@ long kkv_put(int key, void *val, size_t size)
 	struct kkv_ht_bucket *bucket;
 	struct kkv_ht_entry *ht_entry, *new_entry;
 	void *buffer;
-    bool wake_up = false;
+	bool wake_up = false;
 	int sem_value;
 
-	__CPROVER_assume(hash_table);
-
 	pthread_rwlock_rdlock(&rw_lock);
-	if (!is_inited()) {
+
+	if (!is_inited())
+	{
 		pthread_rwlock_unlock(&rw_lock);
 		return -EPERM;
 	}
 
-	if (val == NULL) {
+	if (val == NULL)
+	{
 		pthread_rwlock_unlock(&rw_lock);
 		return -EINVAL;
 	}
 
 	__CPROVER_assert(hash_table, "hashtable has been inited");
-	__CPROVER_assert(val, "value is not null");
-
+	__CPROVER_assert(val, "value to put is not null");
 
 	// pre allocate the memory and copy the val
 	// so that malloc() is not called while holding the spin lock
 	buffer = malloc(size);
-	if (!buffer) {
+	if (!buffer)
+	{
 		pthread_rwlock_unlock(&rw_lock);
 		return -ENOMEM;
 	}
-    memcpy(buffer, val, size);
+	memcpy(buffer, val, size);
 
-    // initialize the new entry
+	// initialize the new entry
 	new_entry = malloc(sizeof(struct kkv_ht_entry));
-	if (!new_entry) {
+	if (!new_entry)
+	{
 		free(buffer);
 		pthread_rwlock_unlock(&rw_lock);
 		return -ENOMEM;
@@ -156,18 +164,22 @@ long kkv_put(int key, void *val, size_t size)
 	new_entry->kv_pair.size = size;
 	new_entry->kv_pair.val = buffer;
 	new_entry->q_count = 0;
-    // the entry has a valid value, so the semaphore is initialized to 1
-    sem_init(&new_entry->sem, 0, 1);
+	// the entry has a valid value, so the semaphore is initialized to 1
+	sem_init(&new_entry->sem, 0, 1);
 	INIT_LIST_HEAD(&new_entry->entries);
 
 	found = false;
 	bucket = hash_table[hash(key)];
 
+	__CPROVER_assume(bucket);
+
 	pthread_spin_lock(&bucket->lock);
 
 	// check whether the given key already exists
-	list_for_each_entry(ht_entry, &bucket->entries, entries) {
-		if (ht_entry->kv_pair.key == key) {
+	list_for_each_entry(ht_entry, &bucket->entries, entries)
+	{
+		if (ht_entry->kv_pair.key == key)
+		{
 			found = true;
 			break;
 		}
@@ -175,7 +187,9 @@ long kkv_put(int key, void *val, size_t size)
 
 	// printf("found=%d\n", found);
 
-	if (found) { // key already exists
+	if (found)
+	{
+		// key already exists
 		// update the value and size of the existing kv pair
 		// val may be NULL because the entry may be a dummy one created by a blocking GET
 		free(ht_entry->kv_pair.val);
@@ -185,7 +199,8 @@ long kkv_put(int key, void *val, size_t size)
 		// if some GETs are blocked on the entry, wake up one
 		sem_getvalue(&ht_entry->sem, &sem_value);
 		// printf("sem_value=%d\n", sem_value);
-		if (sem_value == 0) {
+		if (sem_value == 0)
+		{
 			// printf("gonna wake up a blocked get\n");
 			// bucket->count needs to be incremented here because ht_entry is a fake one
 			bucket->count++;
@@ -193,157 +208,170 @@ long kkv_put(int key, void *val, size_t size)
 		}
 
 		__CPROVER_assert(*(ht_entry->kv_pair.val) == *val && ht_entry->kv_pair.size == size && ht_entry->kv_pair.key == key, "kkv put succeeded");
-	} else { // key doesn't exist
+	}
+	else
+	{ // key doesn't exist
 		// add the new entry to the tail of the list
 		list_add(&new_entry->entries, &bucket->entries);
 		bucket->count++;
 		__CPROVER_assert(*(new_entry->kv_pair.val) == *val && new_entry->kv_pair.size == size && new_entry->kv_pair.key == key, "kkv put succeeded");
-
 	}
 
 	pthread_spin_unlock(&bucket->lock);
 	pthread_rwlock_unlock(&rw_lock);
 
-    // wake up a GET blocked on the entry
+	// wake up a GET blocked on the entry
 	if (wake_up)
 		sem_post(&ht_entry->sem);
 	return 0;
 }
 
-long kkv_get(int key, void *val, size_t size, int flags)
-{
+// long kkv_get(int key, void *val, size_t size, int flags)
+// {
 
-	size_t actual_size;
-	long ret;
-	struct kkv_ht_entry *ht_entry, *next_ht_entry, *new_entry;
-	struct kkv_ht_bucket *bucket;
-	struct kkv_pair *pair;
-	void *buffer;
+// 	size_t actual_size;
+// 	long ret;
+// 	struct kkv_ht_entry *ht_entry, *next_ht_entry, *new_entry;
+// 	struct kkv_ht_bucket *bucket;
+// 	struct kkv_pair *pair;
+// 	void *buffer;
 
-	__CPROVER_assume(hash_table);
+// 	__CPROVER_assume(hash_table);
 
-	pthread_rwlock_rdlock(&rw_lock);
-	if (!is_inited()) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EPERM;
-	}
+// 	pthread_rwlock_rdlock(&rw_lock);
+// 	if (!is_inited())
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EPERM;
+// 	}
 
-	if (val == NULL) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EINVAL;
-	}
+// 	if (val == NULL)
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EINVAL;
+// 	}
 
-  	__CPROVER_assert(hash_table, "hashtable is inited");
-	__CPROVER_assert(val, "value is not null");
+// 	__CPROVER_assert(hash_table, "hashtable is inited");
+// 	__CPROVER_assert(val, "value is not null");
 
-	ret = -ENOENT;
-	bucket = hash_table[hash(key)];
+// 	ret = -ENOENT;
+// 	bucket = hash_table[hash(key)];
 
-	new_entry = malloc(sizeof(struct kkv_ht_entry));
+// 	new_entry = malloc(sizeof(struct kkv_ht_entry));
 
-	pthread_spin_lock(&bucket->lock);
-	list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries) {
-		if (ht_entry->kv_pair.key == key) {
-			// fake entry
-			if (ht_entry->q_count > 0)
-				ret = 1;
-			// find
-			else
-				ret = 0;
-			break;
-		}
-	}
+// 	pthread_spin_lock(&bucket->lock);
+// 	list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries)
+// 	{
+// 		if (ht_entry->kv_pair.key == key)
+// 		{
+// 			// fake entry
+// 			if (ht_entry->q_count > 0)
+// 				ret = 1;
+// 			// find
+// 			else
+// 				ret = 0;
+// 			break;
+// 		}
+// 	}
 
-	// kv pair not found or fake entry, should block
-	if (ret != 0 && flags) {
-		if (ret == 1) // fake entry
-			free(new_entry);
-		else if (ret == -ENOENT) { // No entry, create a fake one
-			// printf("no entry found, gonna create a fake one\n");
-			new_entry->kv_pair.key = key;
-			new_entry->q_count = 0;
-            // no value available, initialized to 0
-			sem_init(&new_entry->sem, 0, 0);
-			INIT_LIST_HEAD(&new_entry->entries);
-			list_add(&new_entry->entries, &bucket->entries);
-			// should not increment count here because the entry is fake
-			// bucket->count++;
-			ht_entry = new_entry;
-		}
-		++ht_entry->q_count;
+// 	// kv pair not found or fake entry, should block
+// 	if (ret != 0 && flags)
+// 	{
+// 		if (ret == 1) // fake entry
+// 			free(new_entry);
+// 		else if (ret == -ENOENT)
+// 		{ // No entry, create a fake one
+// 			// printf("no entry found, gonna create a fake one\n");
+// 			new_entry->kv_pair.key = key;
+// 			new_entry->q_count = 0;
+// 			// no value available, initialized to 0
+// 			sem_init(&new_entry->sem, 0, 0);
+// 			INIT_LIST_HEAD(&new_entry->entries);
+// 			list_add(&new_entry->entries, &bucket->entries);
+// 			// should not increment count here because the entry is fake
+// 			// bucket->count++;
+// 			ht_entry = new_entry;
+// 		}
+// 		++ht_entry->q_count;
 
-        // block
-		pthread_spin_unlock(&bucket->lock);
-        sem_wait(&ht_entry->sem);
-		pthread_spin_lock(&bucket->lock);
+// 		// block
+// 		pthread_spin_unlock(&bucket->lock);
+// 		sem_wait(&ht_entry->sem);
+// 		pthread_spin_lock(&bucket->lock);
 
-		--ht_entry->q_count;
-		if (destroyed) {
-			free(buffer);
-			pthread_spin_unlock(&bucket->lock);
-			pthread_rwlock_unlock(&rw_lock);
-			return -EPERM;
-		}
-		ret = 0; // found the kv pair
-		__CPROVER_assert(flags && ret == 0 && ht_entry->kv_pair.key == key && ht_entry->kv_pair.val, "check return of blocked blocking kkv_get");
+// 		--ht_entry->q_count;
+// 		if (destroyed)
+// 		{
+// 			free(buffer);
+// 			pthread_spin_unlock(&bucket->lock);
+// 			pthread_rwlock_unlock(&rw_lock);
+// 			return -EPERM;
+// 		}
+// 		ret = 0; // found the kv pair
+// 		__CPROVER_assert(flags && ret == 0 && ht_entry->kv_pair.key == key && ht_entry->kv_pair.val, "check return of blocked blocking kkv_get");
+// 	}
 
-	}
+// 	// successfully found the kv pair
+// 	if (ret == 0)
+// 	{
+// 		pair = &ht_entry->kv_pair;
+// 		// copy the value of the kv pair to the user
+// 		actual_size = min(pair->size, size);
+// 		memcpy(val, pair->val, actual_size);
+// 		free(pair->val);
+// 		pair->val = NULL;
+// 		bucket->count--;
+// 		if (ht_entry->q_count == 0)
+// 		{
+// 			// cut the entry off the linked list
+// 			list_del(&ht_entry->entries);
+// 			sem_destroy(&ht_entry->sem);
+// 			free(ht_entry);
+// 		}
+// 	}
+// 	pthread_spin_unlock(&bucket->lock);
+// 	pthread_rwlock_unlock(&rw_lock);
 
-	// successfully found the kv pair
-	if (ret == 0) {
-		pair = &ht_entry->kv_pair;
-		// copy the value of the kv pair to the user
-		actual_size = min(pair->size, size);
-		memcpy(val, pair->val, actual_size);
-	    free(pair->val);
-		pair->val = NULL;
-		bucket->count--;
-		if (ht_entry->q_count == 0) {
-            // cut the entry off the linked list
-			list_del(&ht_entry->entries);
-            sem_destroy(&ht_entry->sem);
-            free(ht_entry);
-        }
-	}
-    pthread_spin_unlock(&bucket->lock);
-	pthread_rwlock_unlock(&rw_lock);
+// 	__CPROVER_assert(!flags && ret == -ENOENT, "check return of nonblock kkv_get no such key");
 
-	__CPROVER_assert(!flags && ret == -ENOENT, "check return of nonblock kkv_get no such key");
+// 	return ret;
+// }
 
-	return ret;
-}
+// // num_gets_blocked returns the number of blocked kkv_get calls blocked on the given key
+// int num_gets_blocked(int key)
+// {
+// 	int ret;
+// 	struct kkv_ht_entry *ht_entry, *next_ht_entry, *new_entry;
+// 	struct kkv_ht_bucket *bucket;
+// 	struct kkv_pair *pair;
 
-// num_gets_blocked returns the number of blocked kkv_get calls blocked on the given key
-int num_gets_blocked(int key) {
-	int ret;
-	struct kkv_ht_entry *ht_entry, *next_ht_entry, *new_entry;
-	struct kkv_ht_bucket *bucket;
-	struct kkv_pair *pair;
+// 	pthread_rwlock_rdlock(&rw_lock);
+// 	if (!is_inited())
+// 	{
+// 		pthread_rwlock_unlock(&rw_lock);
+// 		return -EPERM;
+// 	}
+// 	ret = -ENOENT;
+// 	bucket = hash_table[hash(key)];
 
-	pthread_rwlock_rdlock(&rw_lock);
-	if (!is_inited()) {
-		pthread_rwlock_unlock(&rw_lock);
-		return -EPERM;
-	}
-	ret = -ENOENT;
-	bucket = hash_table[hash(key)];
+// 	// look for the entry of the given key
+// 	pthread_spin_lock(&bucket->lock);
+// 	list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries)
+// 	{
+// 		if (ht_entry->kv_pair.key == key)
+// 		{
+// 			// fake entry
+// 			if (ht_entry->q_count > 0)
+// 				ret = ht_entry->q_count;
+// 			// find
+// 			else
+// 				ret = 0;
+// 			break;
+// 		}
+// 	}
 
-	// look for the entry of the given key
-	pthread_spin_lock(&bucket->lock);
-	list_for_each_entry_safe(ht_entry, next_ht_entry, &bucket->entries, entries) {
-		if (ht_entry->kv_pair.key == key) {
-			// fake entry
-			if (ht_entry->q_count > 0)
-				ret = ht_entry->q_count;
-			// find
-			else
-				ret = 0;
-			break;
-		}
-	}
+// 	pthread_spin_unlock(&bucket->lock);
+// 	pthread_rwlock_unlock(&rw_lock);
 
-	pthread_spin_unlock(&bucket->lock);
-	pthread_rwlock_unlock(&rw_lock);
-
-	return ret;
-}
+// 	return ret;
+// }
