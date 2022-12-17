@@ -332,6 +332,11 @@ long kkv_get(int key, void *val, size_t size, int flags)
 	pthread_spin_unlock(&bucket->lock);
 	pthread_rwlock_unlock(&rw_lock);
 
+	if (ht_entry != new_entry)
+	{
+		free(new_entry);
+	}
+
 	__CPROVER_assert(!flags && ret == -ENOENT || ret == 0, "check return of nonblock kkv_get no such key or found");
 
 	return ret;
