@@ -39,5 +39,17 @@ cbmc_program_2:
 cbmc_program_3:
 	cd src && cbmc model_check_program_3.c --unwind 30 --trace --bounds-check --pointer-check --memory-leak-check --div-by-zero-check --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --conversion-check  > ../cbmc_program_3.out
 
+cbmc_program_4:
+	cd src && cbmc model_check_program_4.c --unwind 30 --trace --bounds-check --pointer-check --memory-leak-check --div-by-zero-check --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --conversion-check  > ../cbmc_program_4.out
+
+cbmc_program_5:
+	cd src && cbmc model_check_program_5.c --unwind 30 --trace --bounds-check --pointer-check --memory-leak-check --div-by-zero-check --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --conversion-check  > ../cbmc_program_5.out
+
+cbmc_program_6:
+	cd src && cbmc model_check_program_6.c --unwind 30 --trace --bounds-check --pointer-check --memory-leak-check --div-by-zero-check --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --conversion-check  > ../cbmc_program_6.out
+
+cbmc_program_7:
+	cd src && cbmc model_check_program_7.c --unwind 30 --trace --bounds-check --pointer-check --memory-leak-check --div-by-zero-check --signed-overflow-check --unsigned-overflow-check --pointer-overflow-check --conversion-check  > ../cbmc_program_7.out
+
 clean:
 	rm -rf *.o src/*.gch ./app ./unit_test
