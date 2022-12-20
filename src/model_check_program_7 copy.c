@@ -8,7 +8,7 @@
 #include "fridge.h"
 #include "fridge.c"
 
-// verify kkv_get retrieves correct value from Fridge and removes the key-value pair from Fridge
+// verify that if multiple kkv_put calls are made, the last one overrides the value of previous ones
 int main()
 {
     int v = 3, get_v;
@@ -17,9 +17,10 @@ int main()
     kkv_init();
     ret = kkv_put(1, (void *)&v, sizeof(int));
     __CPROVER_assert(ret == 0, "kkv_put successfully puts value");
+    v = 4;
+    ret = kkv_put(1, (void *)&v, sizeof(int));
+    __CPROVER_assert(ret == 0, "kkv_put successfully puts value");
     ret = kkv_get(1, (void *)&get_v, sizeof(int), 0);
-    __CPROVER_assert(ret == 0 && get_v == 3, "kkv_get successfully gets the value put by kkv_put");
-    ret = kkv_get(1, (void *)&get_v, sizeof(int), 0);
-    __CPROVER_assert(ret == -ENOENT, "kkv_get successfully removes the entry from store");
+    __CPROVER_assert(ret == 0 && get_v == 4, "kkv_get successfully gets the value put by latest kkv_put");
     kkv_destroy();
 }

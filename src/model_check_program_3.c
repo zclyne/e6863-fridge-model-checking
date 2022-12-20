@@ -8,7 +8,7 @@
 #include "fridge.h"
 #include "fridge.c"
 
-// verify kkv_put and kkv_get returns -EPERM if they are called when the store is not initialized yet
+// verify kkv_put with valid arguments when Fridge is initialized should be successful
 int main()
 {
     int v = 3, get_v;
